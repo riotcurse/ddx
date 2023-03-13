@@ -1,0 +1,43 @@
+Questions:
+
+    *How do we retrieve/receive the files from the data provider?
+    *Is the data timestamped?
+    *Are the vote count updates provided as totals or deltas?
+    *Will the file size change much between updates?
+    *Will we be accepting files from multiple providers?
+    *What exactly does "once an hour" mean?
+
+How I might do it:
+
+    Regardless of the method of receipt, and assuming use of AWS and Snowflake, 
+my first draft for integrating updated data would be something like:
+
+    1) Drop data into S3 with a timestamp in the key,
+    2) Have a lambda triggered by S3:
+       1) flatten the data (CSV, row-oriented JSON, something else tabular), 
+       2) stage the flattened file in snowflake,
+       3) and then merge the staged data into the results table.
+
+It would be cool if a minimal solution like that was enough, but given the multiple unknowns, I'm 
+concerned that a lambda might not be able to handle the lift. Just in case, I would also want to 
+try something like:
+
+    1) Drop data into S3 with a timestamp in the key,
+    2) Have a lambda triggered by S3:
+        1) normalize the data, add timestamps
+        2) drop the normalized file into another S3 location
+    3) Have a second lambda triggered by s3:
+        1) Run an EMR/Spark job that will:
+            1) stage the data
+            2) and then merge the data into snowflake.
+
+More Questions:
+
+    *What does the budget for this look like?
+    *How quickly does this need to run?
+    *How are we handling data integrity?
+        *What do we do with bad provider data?
+        *How do we verify that we've updated our data correctly?
+    
+    
+
